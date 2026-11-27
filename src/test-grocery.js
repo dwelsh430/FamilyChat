@@ -1,7 +1,7 @@
 // Automated test of the Grocery Store board with simulated family members.
 // Needs: node relay.js (local test relay) and a web server on :8765 at the repo root.
 const {chromium} = require('playwright')
-const URL = 'http://localhost:8765/chat/?relay=ws://localhost:7447#code=test-grocery-' + Date.now()
+const URL = 'http://localhost:8765/?relay=ws://localhost:7447#code=test-grocery-' + Date.now()
 let failures = 0
 const check = (label, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + label); if (!ok) failures++ }
 

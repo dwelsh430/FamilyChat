@@ -31,10 +31,10 @@ Edits work offline too and spread to everyone the same way chat messages do. If 
 4. On a phone, use the browser's "Add to Home Screen" so it opens like an app.
 
 ## Where the page lives
-Our family link: **https://dwelsh430.github.io/FamilyChat/chat/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
+Our family link: **https://dwelsh430.github.io/FamilyChat/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
 - **GitHub Pages** (free, needs a GitHub account): put `index.html` in a repository and turn on Pages.
 - Any other free static host (Netlify, Cloudflare Pages) works the same way.
 - For a quick test on one computer you can also just double-click `index.html`.
 
 ## For later changes
-The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `chat/index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `grocery.js` is the Grocery Store board. `src/relay.js` is a local test relay, and `src/test.js` and `src/test-grocery.js` are automated multi-person tests.
+The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `grocery.js` is the Grocery Store board. `src/relay.js` is a local test relay, and `src/test.js` and `src/test-grocery.js` are automated multi-person tests.
