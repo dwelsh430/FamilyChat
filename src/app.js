@@ -267,7 +267,9 @@ const boards = createBoards({
 })
 
 async function connect() {
-  if (room) { room.leave(); room = null }
+  // Wait for the old room to finish closing; joining the same room again
+  // while it's still closing would hand back the closing one.
+  if (room) { const old = room; room = null; try { await old.leave() } catch {} }
   peerNames.clear()
   loadMessages(); boards.load(); ids.load()
   await publishMyDevices()
@@ -505,6 +507,7 @@ $('joinBtn').onclick = async () => {
   store.set('fc:name', myName); store.set('fc:code', familyCode)
   history.replaceState(null, '', location.pathname + location.search)  // keep code out of the address bar
   $('setup').classList.remove('show')
+  await leaving
   await connect()
 }
 
@@ -541,7 +544,12 @@ $('exportBtn').onclick = () => {
   a.download = 'family-chat-backup-' + new Date().toISOString().slice(0, 10) + '.json'
   a.click()
 }
-$('leaveBtn').onclick = () => { $('menu').classList.remove('show'); room?.leave(); room = null; renderStatus(); showSetup() }
+let leaving = Promise.resolve()
+$('leaveBtn').onclick = () => {
+  $('menu').classList.remove('show')
+  if (room) { const old = room; room = null; leaving = old.leave().catch(() => {}) }
+  renderStatus(); showSetup()
+}
 
 // ---------- linking another device ----------
 // On the device you already use: show a link / QR code with a one-time secret.
