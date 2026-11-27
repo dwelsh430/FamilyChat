@@ -267,7 +267,7 @@ const boards = createBoards({
 })
 
 async function connect() {
-  if (room) { room.leave(); room = null }
+  if (room) { const old = room; room = null; try { await old.leave() } catch {} }
   peerNames.clear()
   loadMessages(); boards.load(); ids.load()
   await publishMyDevices()
@@ -279,6 +279,11 @@ async function connect() {
   const testRelay = new URLSearchParams(location.search).get('relay')
   const config = {appId: APP_ID, password: familyCode}
   if (testRelay) config.relayConfig = {urls: [testRelay]}
+  // A TURN relay, if the family set one up, lets devices connect across networks.
+  const turn = getTurn()
+  if (turn?.urls?.length) config.turnConfig = [{urls: turn.urls, username: turn.username, credential: turn.credential}]
+  // Test only: force every connection through the TURN relay to prove it works.
+  if (testRelay && new URLSearchParams(location.search).get('relayonly')) config.rtcConfig = {iceTransportPolicy: 'relay'}
   // Test-only hook (only when a private test relay is used) so automated tests can try forging messages.
   if (testRelay) window.__fcTest = {uid: () => myUid, pk: () => devKey.pk, send: list => actions.sendMsgs(list),
     sign: m => signWith(devKey, msgPayload(m))}
@@ -296,9 +301,10 @@ async function connect() {
   const idsA = room.makeAction('ids')       // [notes about which devices belong to whom]
   const sendIds = (data, target) => idsA.send(data, target ? {target} : undefined)
   const linkA = room.makeAction('link')     // linking a new device (see identity.js)
-  actions = {sendHello, sendMsgs, sendOps, sendBoardOps, sendIds, linkA}
+  const turnA = room.makeAction('turn')     // relay settings, passed between family members
+  actions = {sendHello, sendMsgs, sendOps, sendBoardOps, sendIds, linkA, turnA}
 
-  const helloData = () => ({name: myName, ids: [...messages.keys()], gids: boards.groceryIds(), bids: boards.boardIds(), iids: ids.ids()})
+  const helloData = () => ({name: myName, ids: [...messages.keys()], gids: boards.groceryIds(), bids: boards.boardIds(), iids: ids.ids(), turnv: getTurn()?.v || 0})
   actions.helloData = helloData
   const hello = target => sendHello(helloData(), target)
 
@@ -320,6 +326,9 @@ async function connect() {
       const lacking = boards.missingFor(new Set(data.gids), true)
       if (lacking.length) sendOps(lacking, peerId)
     }
+    // Relay settings: pass ours on if theirs are older.
+    const mine = getTurn()
+    if (mine && typeof data.turnv === 'number' && data.turnv < mine.v) turnA.send(mine, {target: peerId})
     // Notes about devices (only peers running this version send iids).
     if (Array.isArray(data.iids)) {
       const lacking = ids.missingFor(new Set(data.iids))
@@ -348,6 +357,12 @@ async function connect() {
     if (await ids.merge(list)) { saveMyBundle(); await refreshTrust() }
   }
   linkA.onMessage = (data, {peerId}) => onLinkMessage(data, peerId)
+  turnA.onMessage = t => {
+    if (!validTurn(t) || t.v <= (getTurn()?.v || 0)) return
+    setTurn(t)
+    toast(t.urls.length ? 'Got connection relay settings from family' : 'Family turned off the connection relay')
+    setTimeout(connect, 300)   // reconnect so the relay is used
+  }
   opsA.onMessage = list => {
     if (!Array.isArray(list)) return
     boards.merge(list)
@@ -456,6 +471,63 @@ $('input').addEventListener('keydown', e => {
 })
 $('sendBtn').onclick = sendMessage
 
+// ---------- connection relay (TURN) ----------
+// Details are kept on each device and passed along in invite links and
+// between family members, so they never need to be in the public repository.
+const turnKey = code => 'fc:turn:' + code
+const getTurn = () => { const t = store.get(turnKey(familyCode), null); return validTurn(t) ? t : null }
+const setTurn = t => store.set(turnKey(familyCode), t)
+function validTurn(t) {
+  return t && typeof t === 'object' && typeof t.v === 'number' && isFinite(t.v) &&
+    Array.isArray(t.urls) && t.urls.length <= 5 &&
+    t.urls.every(u => typeof u === 'string' && u.length <= 200 && /^turns?:/.test(u)) &&
+    (t.username === undefined || (typeof t.username === 'string' && t.username.length <= 200)) &&
+    (t.credential === undefined || (typeof t.credential === 'string' && t.credential.length <= 200))
+}
+const encodeTurn = t => btoa(unescape(encodeURIComponent(JSON.stringify({urls: t.urls, username: t.username, credential: t.credential, v: t.v})))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+function decodeTurn(s) {
+  try {
+    s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='
+    const t = JSON.parse(decodeURIComponent(escape(atob(s))))
+    return validTurn(t) ? t : null
+  } catch { return null }
+}
+function turnFromLink() {
+  const m = location.hash.match(/turn=([^&]+)/)
+  return m ? decodeTurn(decodeURIComponent(m[1])) : null
+}
+// Links to share: the family code, plus relay details when there are any.
+function shareLink(extra = '') {
+  const t = getTurn()
+  return location.origin + location.pathname + '#code=' + encodeURIComponent(familyCode) + extra +
+    (t?.urls?.length ? '&turn=' + encodeTurn(t) : '')
+}
+
+function parseTurnUrls(text) {
+  return text.split(/[\s,]+/).map(u => u.trim()).filter(Boolean)
+    .map(u => /^turns?:/.test(u) ? u : 'turn:' + u)
+}
+$('turnBtn').onclick = () => {
+  const t = getTurn()
+  $('turnUrls').value = (t?.urls || []).join('\n')
+  $('turnUser').value = t?.username || ''
+  $('turnPass').value = t?.credential || ''
+  $('menu').classList.remove('show')
+  $('turnDialog').classList.add('show')
+}
+$('turnCancel').onclick = () => $('turnDialog').classList.remove('show')
+$('turnSave').onclick = () => {
+  const urls = parseTurnUrls($('turnUrls').value)
+  const t = {urls, username: $('turnUser').value.trim() || undefined, credential: $('turnPass').value.trim() || undefined, v: Date.now()}
+  if (!validTurn(t)) return toast('Check the server addresses (they start with turn: or turns:)')
+  setTurn(t)
+  $('turnDialog').classList.remove('show')
+  toast(urls.length ? 'Relay saved. Family members get it when they connect.' : 'Relay turned off')
+  if (actions) actions.turnA.send(t)
+  if (room) setTimeout(connect, 300)
+}
+$('turnClear').onclick = () => { $('turnUrls').value = ''; $('turnUser').value = ''; $('turnPass').value = '' }
+
 function codeFromLink() {
   const m = location.hash.match(/code=([^&]+)/)
   return m ? decodeURIComponent(m[1]) : ''
@@ -517,7 +589,7 @@ $('closeMenu').onclick = () => $('menu').classList.remove('show')
 $('menu').onclick = e => { if (e.target.id === 'menu') $('menu').classList.remove('show') }
 
 $('inviteBtn').onclick = async () => {
-  const link = location.origin + location.pathname + '#code=' + encodeURIComponent(familyCode)
+  const link = shareLink()
   try {
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
       await navigator.share({title: 'Family Chat', text: 'Join our family chat', url: link})
@@ -554,7 +626,7 @@ $('linkBtn').onclick = async () => {
   if (!room) return toast('Connect first')
   const secret = newLinkSecret()
   activeLink = {secret, tag: await linkTag(secret), until: Date.now() + 10 * 60 * 1000}
-  const link = location.origin + location.pathname + '#code=' + encodeURIComponent(familyCode) + '&link=' + secret
+  const link = shareLink('&link=' + secret)
   const qr = qrcode(0, 'M'); qr.addData(link); qr.make()
   $('linkQr').innerHTML = qr.createSvgTag({cellSize: 4, margin: 2, scalable: true})
   $('linkUrl').value = link
@@ -645,6 +717,11 @@ function renderDevices() {
 // ---------- start ----------
 await initIdentity()
 const linkCode = codeFromLink()
+{
+  // Relay details that came in an invite link are saved for that family code.
+  const t = turnFromLink()
+  if (t && linkCode && t.v > (validTurn(store.get(turnKey(linkCode), null)) ? store.get(turnKey(linkCode)).v : 0)) store.set(turnKey(linkCode), t)
+}
 const linkSecret = linkParam()
 if (linkSecret && linkCode) {
   showLinkSetup(linkCode, linkSecret)

@@ -32,10 +32,16 @@ Family members still on an older copy of the page keep seeing the Grocery Store,
 - **iPhone and iPad:** notifications only work once the chat is on your Home Screen. In Safari, tap Share → **Add to Home Screen**, open Family Chat from the new icon, and turn notifications on there. Adding it to the Home Screen is handy on Android too.
 - **The limit:** once the chat is fully closed, or your phone has put it to sleep, notifications stop until you open it again. Waking a closed app needs a "push server", and this app deliberately has no server. A family computer or tablet left open with the chat helps messages get passed along anyway.
 
+## Connecting across different networks (relay)
+- On the same Wi-Fi, devices connect straight to each other. Across networks, especially phones on mobile data, the network often blocks direct connections. Then devices can find each other but never connect, and you see "Waiting for family…".
+- The fix is a **connection relay** (a "TURN server"). It passes the already-encrypted traffic along only when a direct connection fails, and it can't read anything.
+- **Setting one up (once, by one person):** make a free account with a TURN provider, for example Metered's Open Relay (metered.ca, 20 GB a month free). Copy its TURN server address, username and password. In Family Chat open ☰ → **Connection relay**, paste them in, and tap **Save**.
+- The details then spread on their own: every invite link and "Link another device" link includes them, and family members pick them up whenever they connect to someone who has them. They are never stored in the public repository.
+
 ## Things to know (limits of version 1)
 - **Messages only travel when at least two people have the chat open at the same time.** If you post while nobody else is on, your message waits on your device and goes out the next time someone else opens the chat while you have it open too. A family member who leaves a computer or tablet open with the chat makes this work much better.
 - **Notifications only arrive while the chat is open** somewhere in the background (see Notifications above). The tab title also shows the number of unread messages.
-- **Some mobile networks block direct connections.** Usually it works. If one person can never connect from their phone's data plan but can on Wi-Fi, that's the reason. We can fix it later by adding a "TURN" relay, at the cost of a small outside service.
+- **Some networks block direct connections**, mostly mobile data. Without a connection relay (see above), those devices only sync when they're on friendlier Wi-Fi.
 - **The family code is the key.** Anyone who has it can read and post. Choose a long one (the "Make a new code" button does this) and share it only with family.
 - **Clearing browser data deletes your copy** of the chat. Other people's copies are fine, and you'll get the history back the next time you're both online. "Save a backup" in the menu downloads a copy.
 - No editing or deleting messages, no photos yet.

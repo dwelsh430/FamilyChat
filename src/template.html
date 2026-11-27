@@ -206,6 +206,7 @@
   .card h2 { margin: 0 0 6px; font-size: 20px; }
   .card p { color: var(--muted); margin: 6px 0 14px; font-size: 14px; }
   .card label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 4px; }
+  .card textarea { width: 100%; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); resize: vertical; }
   .card input {
     width: 100%; font: inherit; padding: 10px 12px;
     border: 1px solid var(--line); border-radius: 10px;
@@ -282,6 +283,25 @@
   </div>
 </div>
 
+<!-- Connection relay -->
+<div class="overlay" id="turnDialog">
+  <div class="card">
+    <h2>Connection relay</h2>
+    <p>Phones on mobile data often can't connect straight to other devices. A relay (a "TURN server") passes the already-encrypted traffic along when that happens. It can't read your messages. Enter the details from your relay provider. Family members get them automatically when they connect, and in invite links.</p>
+    <label for="turnUrls">Server addresses (one per line)</label>
+    <textarea id="turnUrls" rows="3" placeholder="turn:relay.example.com:80" autocapitalize="off" spellcheck="false"></textarea>
+    <label for="turnUser">Username</label>
+    <input id="turnUser" autocapitalize="off" spellcheck="false" autocomplete="off">
+    <label for="turnPass">Password (credential)</label>
+    <input id="turnPass" autocapitalize="off" spellcheck="false" autocomplete="off">
+    <div class="row">
+      <button id="turnClear">Clear</button>
+      <button id="turnCancel">Cancel</button>
+      <button id="turnSave" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Link another device -->
 <div class="overlay" id="linkDialog">
   <div class="card">
@@ -316,6 +336,9 @@
     </div>
     <div class="row">
       <button id="notifyBtn">Notifications: Off</button>
+    </div>
+    <div class="row">
+      <button id="turnBtn">Connection relay</button>
     </div>
     <div class="row">
       <button id="renameBtn">Change my name</button>
