@@ -1,0 +1,17 @@
+{
+  "name": "familychat",
+  "version": "1.0.0",
+  "description": "Build tools for the FamilyChat page",
+  "scripts": {
+    "build": "bash build.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "trystero": "0.25.4",
+    "ws": "^8.23.0"
+  },
+  "private": true
+}
