@@ -13,18 +13,18 @@ const check = (label, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + label); if
     p.on('pageerror', e => { console.log(name, 'pageerror:', e.message); failures++ })
     p.on('dialog', d => d.accept())
     await p.goto(URL); await p.fill('#nameInput', name); await p.click('#joinBtn')
-    await p.click('#tabGrocery')
+    await p.click('#tab-grocery')
     return p
   }
   const waitFor = async (p, fn, arg) => { try { await p.waitForFunction(fn, arg, {timeout: 15000}); return true } catch { return false } }
-  const board = p => p.textContent('#groceryBoard')
-  const addStore = async (p, name) => { await p.fill('#g-new-store', name); await p.press('#g-new-store', 'Enter') }
+  const board = p => p.textContent('#boardView')
+  const addStore = async (p, name) => { await p.fill('#g-new-list', name); await p.press('#g-new-list', 'Enter') }
   const storeSection = (p, name) => p.locator('.g-store', {has: p.locator('.g-store-name', {hasText: name})})
   const addItem = async (p, store, item) => {
     const input = storeSection(p, store).locator('.g-add input')
     await input.fill(item); await input.press('Enter')
   }
-  const hasText = t => document.getElementById('groceryBoard').textContent.includes(t)
+  const hasText = t => document.getElementById('boardView').textContent.includes(t)
 
   const a = await mk('Darcy')
   const b = await mk('Grandma', {width: 390, height: 760})
@@ -32,7 +32,7 @@ const check = (label, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + label); if
 
   await addStore(a, 'Costco'); await addItem(a, 'Costco', 'Milk'); await addItem(a, 'Costco', 'Eggs')
   await addStore(a, 'Trader Joe\'s'); await addItem(a, 'Trader Joe\'s', 'Bananas')
-  check('B sees stores and items A added', await waitFor(b, () => ['Costco','Milk','Eggs','Trader Joe','Bananas'].every(t => document.getElementById('groceryBoard').textContent.includes(t))))
+  check('B sees stores and items A added', await waitFor(b, () => ['Costco','Milk','Eggs','Trader Joe','Bananas'].every(t => document.getElementById('boardView').textContent.includes(t))))
 
   // B checks off Milk and renames Eggs
   await storeSection(b, 'Costco').locator('.g-item', {hasText: 'Milk'}).locator('input[type=checkbox]').check()
@@ -60,20 +60,20 @@ const check = (label, ok) => { console.log((ok ? 'PASS ' : 'FAIL ') + label); if
 
   // A deletes the item list via "Clear checked"
   await storeSection(a, 'Costco').locator('.g-clear').click()
-  check('B sees checked item cleared', await waitFor(b, () => !document.getElementById('groceryBoard').textContent.includes('Milk')))
+  check('B sees checked item cleared', await waitFor(b, () => !document.getElementById('boardView').textContent.includes('Milk')))
 
   await b.screenshot({path: 'grocery-phone.png'})
 
   // A goes offline; C joins later and gets everything from B
   await a.context().close()
   const c = await mk('Uncle Pat')
-  check('C (joined after Darcy left) gets the full list', await waitFor(c, () => ['Costco','Eggs (2 dozen)','Bananas','Bread'].every(t => document.getElementById('groceryBoard').textContent.includes(t))))
+  check('C (joined after Darcy left) gets the full list', await waitFor(c, () => ['Costco','Eggs (2 dozen)','Bananas','Bread'].every(t => document.getElementById('boardView').textContent.includes(t))))
 
   // Offline edit: C reloads, list persists; C deletes a store and B sees it
-  await c.reload(); await c.click('#tabGrocery')
+  await c.reload(); await c.click('#tab-grocery')
   check('C keeps the list after reload', await waitFor(c, hasText, 'Bananas'))
   await storeSection(c, 'Costco').locator('.g-store-head .g-x').click()
-  check('B sees store deleted by C', await waitFor(b, () => !document.getElementById('groceryBoard').textContent.includes('Costco')))
+  check('B sees store deleted by C', await waitFor(b, () => !document.getElementById('boardView').textContent.includes('Costco')))
 
   // Chat still works alongside
   await c.click('#tabChat'); await c.fill('#input', 'Got the bread'); await c.click('#sendBtn')

@@ -8,13 +8,15 @@ One web page (`index.html`). Open it in any browser on a phone, tablet or comput
 - **Talking.** Once the browsers have found each other, they connect directly (WebRTC, the same technology video calls use) and send messages straight to each other, encrypted.
 - **Keeping a copy.** Every device saves the whole chat. When two devices meet, they compare notes and fill in anything the other is missing. So if Grandma posts while you're offline, and Uncle Pat was online at the time, you get her message from Pat later even if Grandma has gone offline by then.
 
-## The Grocery Store board
-Tap the **Grocery Store** tab at the top. Anyone in the family can:
-- Add a store (like Costco), then add items under it.
-- Tap a store or item name to rename it, tick the box when you've got it, or tap × to delete it.
-- Tap **Clear checked items** after a shopping trip.
+## Boards: Grocery Store and your own
+The tabs at the top are **Chat**, the **Grocery Store** board, and any boards the family makes. Swipe the tabs sideways if they don't all fit.
+- Tap **+ New board** to make your own, like "Dad's Xmas Wish List". A board holds lists, and each list holds items. On the Grocery Store board, the lists are stores.
+- Anyone in the family can edit any board. Tap a name to rename it, tick the box when it's done, or tap × to delete it. Deleting a list or a whole board asks first.
+- Tap **Clear checked items** to tidy a list.
 
-Edits work offline too and spread to everyone the same way chat messages do. If two people change the same thing at about the same time, the later change wins. A dot on the tab means someone else changed the list.
+Edits work offline too and spread to everyone the same way chat messages do. If two people change the same thing at about the same time, the later change wins. A dot on a tab means someone else changed that board.
+
+Family members still on an older copy of the page keep seeing the Grocery Store, but they won't see the new boards until they reload.
 
 ## Things to know (limits of version 1)
 - **Messages only travel when at least two people have the chat open at the same time.** If you post while nobody else is on, your message waits on your device and goes out the next time someone else opens the chat while you have it open too. A family member who leaves a computer or tablet open with the chat makes this work much better.
@@ -37,4 +39,4 @@ Our family link: **https://dwelsh430.github.io/FamilyChat/** (served by GitHub P
 - For a quick test on one computer you can also just double-click `index.html`.
 
 ## For later changes
-The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `grocery.js` is the Grocery Store board. `src/relay.js` is a local test relay, and `src/test.js` and `src/test-grocery.js` are automated multi-person tests.
+The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `boards.js` is the boards (Grocery Store and family-made boards). `src/relay.js` is a local test relay, and `src/test.js`, `src/test-grocery.js` and `src/test-boards.js` are automated multi-person tests.
