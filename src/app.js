@@ -10,6 +10,7 @@
 //    even if the original sender is offline.
 // ---------------------------------------------------------------------------
 import {joinRoom} from 'trystero'
+import {createGrocery} from './grocery.js'
 
 const APP_ID = 'familychat-p2p-v1'
 const $ = id => document.getElementById(id)
@@ -134,10 +135,20 @@ function toast(text) {
 let myDeviceId = store.get('fc:device', '')
 if (!myDeviceId) { myDeviceId = crypto.randomUUID().slice(0, 8); store.set('fc:device', myDeviceId) }
 
+// The Grocery Store board shares small "changes" the same way chat shares messages.
+const grocery = createGrocery({
+  root: $('groceryBoard'),
+  storageKey: () => 'fc:grocery:' + familyCode,
+  getName: () => myName,
+  deviceId: myDeviceId,
+  store,
+  onLocalOps: list => actions?.sendOps(list)
+})
+
 async function connect() {
   if (room) { room.leave(); room = null }
   peerNames.clear()
-  loadMessages(); render()
+  loadMessages(); render(); grocery.load()
   // Room name is derived from the code, so the code itself is never published.
   const roomId = (await sha256('room:' + familyCode)).slice(0, 32)
   // For testing only: ?relay=ws://host lets us point at a private relay.
@@ -149,11 +160,13 @@ async function connect() {
   const helloA = room.makeAction('hello')   // {name, ids}
   const msgsA = room.makeAction('msgs')     // [messages]
   const wantA = room.makeAction('want')     // [ids I'm missing]
+  const opsA = room.makeAction('gops')      // [grocery changes]
+  const sendOps = (data, target) => opsA.send(data, target ? {target} : undefined)
   const sendHello = (data, target) => helloA.send(data, target ? {target} : undefined)
   const sendMsgs = (data, target) => msgsA.send(data, target ? {target} : undefined)
-  actions = {sendHello, sendMsgs}
+  actions = {sendHello, sendMsgs, sendOps}
 
-  const hello = target => sendHello({name: myName, ids: [...messages.keys()]}, target)
+  const hello = target => sendHello({name: myName, ids: [...messages.keys()], gids: grocery.ids()}, target)
 
   room.onPeerJoin = peerId => { hello(peerId); renderStatus() }
   room.onPeerLeave = peerId => { peerNames.delete(peerId); renderStatus() }
@@ -168,6 +181,11 @@ async function connect() {
     if (missingForThem.length) sendMsgs(missingForThem, peerId)
     const want = [...theirs].filter(id => typeof id === 'string' && !messages.has(id))
     if (want.length) wantA.send(want, {target: peerId})
+    // Grocery changes: send the ones they don't have yet (they do the same for us).
+    if (Array.isArray(data.gids)) {
+      const lacking = grocery.missingFor(new Set(data.gids))
+      if (lacking.length) sendOps(lacking, peerId)
+    }
   }
   wantA.onMessage = (ids, {peerId}) => {
     if (!Array.isArray(ids)) return
@@ -179,8 +197,28 @@ async function connect() {
     const added = merge(list)
     if (added && document.hidden) bumpUnread(added)
   }
+  opsA.onMessage = list => {
+    if (!Array.isArray(list)) return
+    const added = grocery.merge(list)
+    if (added && currentTab !== 'grocery') $('tabGrocery').classList.add('has-new')
+  }
   renderStatus()
 }
+
+// ---------- tabs ----------
+let currentTab = 'chat'
+function showTab(name) {
+  currentTab = name
+  store.set('fc:tab', name)
+  $('tabChat').setAttribute('aria-selected', name === 'chat')
+  $('tabGrocery').setAttribute('aria-selected', name === 'grocery')
+  document.body.dataset.tab = name
+  if (name === 'grocery') $('tabGrocery').classList.remove('has-new')
+  if (name === 'chat') $('messages').scrollTop = $('messages').scrollHeight
+}
+$('tabChat').onclick = () => showTab('chat')
+$('tabGrocery').onclick = () => showTab('grocery')
+showTab(store.get('fc:tab', 'chat') === 'grocery' ? 'grocery' : 'chat')
 
 function sendMessage() {
   const text = $('input').value.trim()
@@ -267,11 +305,12 @@ $('renameBtn').onclick = () => {
   const n = (prompt('Your name:', myName) || '').trim()
   if (!n) return
   myName = n.slice(0, 40); store.set('fc:name', myName)
-  actions?.sendHello({name: myName, ids: [...messages.keys()]})
+  actions?.sendHello({name: myName, ids: [...messages.keys()], gids: grocery.ids()})
   renderStatus(); $('menuInfo').textContent = `You are "${myName}". Family code: ${familyCode}`
 }
 $('exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify([...messages.values()], null, 2)], {type: 'application/json'})
+  const backup = {messages: [...messages.values()], grocery: grocery.get(grocery.ids())}
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'})
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = 'family-chat-backup-' + new Date().toISOString().slice(0, 10) + '.json'

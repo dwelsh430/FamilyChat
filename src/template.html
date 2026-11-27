@@ -69,6 +69,63 @@
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
   #menuBtn { padding: 6px 10px; }
+  nav.tabs {
+    display: flex;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.tabs button {
+    flex: 1; border: 0; border-radius: 0; background: none;
+    padding: 10px 8px; color: var(--muted); font-weight: 600;
+    border-bottom: 3px solid transparent;
+  }
+  nav.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  nav.tabs button.has-new::after {
+    content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); margin-left: 6px; vertical-align: middle;
+  }
+  body[data-tab="grocery"] #messages, body[data-tab="grocery"] footer { display: none; }
+  body:not([data-tab="grocery"]) #groceryBoard { display: none; }
+  /* Grocery Store board */
+  #groceryBoard {
+    flex: 1; overflow-y: auto; padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  #groceryBoard > * { width: 100%; max-width: 640px; margin-left: auto; margin-right: auto; }
+  .g-add { display: flex; gap: 8px; }
+  .g-add input, .g-edit {
+    flex: 1; min-width: 0; font: inherit; padding: 8px 12px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink);
+  }
+  .g-store {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .g-store-head { display: flex; align-items: center; gap: 8px; }
+  .g-name {
+    border: 0; background: none; padding: 4px 2px; text-align: left;
+    flex: 1; min-width: 0; overflow-wrap: anywhere; border-radius: 6px;
+  }
+  .g-name:hover { background: var(--bg); }
+  .g-store-name { font-size: 18px; font-weight: 700; }
+  .g-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .g-x {
+    border: 0; background: none; color: var(--muted);
+    font-size: 22px; line-height: 1; padding: 4px 8px;
+  }
+  .g-x:hover { color: var(--ink); }
+  .g-items { list-style: none; margin: 0; padding: 0; }
+  .g-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 2px 0; border-top: 1px solid var(--line);
+  }
+  .g-item:first-child { border-top: 0; }
+  .g-item input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+  .g-item.done .g-item-name { text-decoration: line-through; color: var(--muted); }
+  .g-clear { align-self: flex-start; font-size: 14px; padding: 6px 10px; }
   main {
     flex: 1;
     overflow-y: auto;
@@ -161,7 +218,14 @@
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
 
+<nav class="tabs" role="tablist">
+  <button id="tabChat" role="tab" aria-selected="true">Chat</button>
+  <button id="tabGrocery" role="tab" aria-selected="false">Grocery Store</button>
+</nav>
+
 <main id="messages"></main>
+
+<section id="groceryBoard" aria-label="Grocery Store"></section>
 
 <footer>
   <textarea id="input" rows="1" placeholder="Write a message…" aria-label="Message"></textarea>
