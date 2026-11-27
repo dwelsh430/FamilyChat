@@ -64,11 +64,12 @@ const cleanMsg = m => {
   return c
 }
 
-// Merge incoming messages; returns how many were new. Signed messages must
+// Merge incoming messages; returns the ones that are brand new. Signed messages must
 // carry a correct signature or they're thrown away. (Messages from older
 // copies of the app have no signature: they're kept but marked "unverified".)
 async function merge(list) {
   let added = 0
+  const fresh = []
   for (const m of list || []) {
     if (!valid(m)) continue
     const have = messages.get(m.id)
@@ -77,9 +78,10 @@ async function merge(list) {
     if (!signed(m) && m.sig !== undefined) continue   // half a signature: not trustworthy
     messages.set(m.id, cleanMsg(m))
     added++
+    if (!have) fresh.push(messages.get(m.id))
   }
   if (added) { saveMessages(); await refreshTrust() }
-  return added
+  return fresh
 }
 
 // ---------- rendering ----------
@@ -336,8 +338,10 @@ async function connect() {
   }
   msgsA.onMessage = async list => {
     if (!Array.isArray(list)) return
-    const added = await merge(list)
-    if (added && document.hidden) bumpUnread(added)
+    const fresh = await merge(list)
+    const fromOthers = fresh.filter(m => !isMine(m))
+    if (fromOthers.length && document.hidden) bumpUnread(fromOthers.length)
+    notifyNew(fromOthers)
   }
   idsA.onMessage = async list => {
     if (!Array.isArray(list)) return
@@ -378,6 +382,58 @@ async function sendMessage() {
   actions.sendMsgs([m])
   autoGrow()
   $('messages').scrollTop = $('messages').scrollHeight
+}
+
+function isMine(m) {
+  return trustOf(m) === 'ok' ? m.uid === myUid : m.id.startsWith(myDeviceId + ':')
+}
+
+// ---------- browser notifications ----------
+// Shown while the chat is open in the background (another tab, another app,
+// phone screen off with the browser still running). Browsers can't wake a
+// closed page without a push server, which this app deliberately doesn't have.
+const notifySupported = 'Notification' in window
+let swReg = null
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then(r => { swReg = r }).catch(() => {})
+}
+const notifyOn = () => notifySupported && Notification.permission === 'granted' && store.get('fc:notify', false)
+
+function renderNotifyBtn() {
+  const b = $('notifyBtn')
+  if (!notifySupported) {
+    const ios = /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone
+    b.textContent = ios ? 'Notifications: add to Home Screen first' : 'Notifications not supported here'
+    b.disabled = !ios
+    return
+  }
+  b.disabled = false
+  b.textContent = notifyOn() ? 'Notifications: On' : Notification.permission === 'denied' ? 'Notifications: blocked' : 'Notifications: Off'
+}
+
+$('notifyBtn').onclick = async () => {
+  if (!notifySupported) return toast('On iPhone/iPad: Share → Add to Home Screen, open it from there, then turn this on.')
+  if (notifyOn()) { store.set('fc:notify', false); renderNotifyBtn(); return toast('Notifications off') }
+  if (Notification.permission === 'denied') return toast('Notifications are blocked. Allow them for this site in your browser settings.')
+  const p = await Notification.requestPermission()
+  store.set('fc:notify', p === 'granted')
+  renderNotifyBtn()
+  toast(p === 'granted' ? 'Notifications on. You\'ll get them while the chat is open in the background.' : 'Notifications were not allowed')
+}
+
+async function notifyNew(list) {
+  if (!list.length || !notifyOn() || (!document.hidden && document.hasFocus())) return
+  const last = list[list.length - 1]
+  const who = m => m.name + (trustOf(m) === 'ok' ? '' : ' (unverified)')
+  const title = list.length === 1 ? who(last) : `${list.length} new messages`
+  const body = list.length === 1 ? last.text.slice(0, 200) : list.slice(-3).map(m => `${who(m)}: ${m.text.slice(0, 80)}`).join('\n')
+  const opts = {body, tag: 'familychat', renotify: true, icon: 'icon-192.png', badge: 'icon-192.png'}
+  try {
+    // Android needs notifications to come from the service worker.
+    const reg = swReg || await navigator.serviceWorker?.getRegistration()
+    if (reg?.showNotification) await reg.showNotification(title, opts)
+    else { const n = new Notification(title, opts); n.onclick = () => { window.focus(); n.close() } }
+  } catch {}
 }
 
 // ---------- unread badge in tab title ----------
@@ -454,7 +510,7 @@ $('joinBtn').onclick = async () => {
 
 $('menuBtn').onclick = () => {
   $('menuInfo').textContent = `You are "${myName}". Family code: ${familyCode}`
-  renderStatus(); renderDevices()
+  renderStatus(); renderDevices(); renderNotifyBtn()
   $('menu').classList.add('show')
 }
 $('closeMenu').onclick = () => $('menu').classList.remove('show')

@@ -26,9 +26,15 @@ Family members still on an older copy of the page keep seeing the Grocery Store,
 - **Lost a device?** On another of your devices, open the menu and tap **Remove** next to it under "My devices". Messages it sends after that no longer count as you. Because the lost device still knows the family code, consider switching everyone to a new family code too.
 - Grocery and board edits aren't signed yet. Anyone in the family can edit those anyway.
 
+## Notifications
+- Open the menu (☰) and tap **Notifications: Off** to turn them on. Your browser asks for permission the first time.
+- You get a notification for each new message from someone else while the chat is open but you're not looking at it (another tab, another app, or the screen locked with the browser still running). Grocery and board changes don't send notifications.
+- **iPhone and iPad:** notifications only work once the chat is on your Home Screen. In Safari, tap Share → **Add to Home Screen**, open Family Chat from the new icon, and turn notifications on there. Adding it to the Home Screen is handy on Android too.
+- **The limit:** once the chat is fully closed, or your phone has put it to sleep, notifications stop until you open it again. Waking a closed app needs a "push server", and this app deliberately has no server. A family computer or tablet left open with the chat helps messages get passed along anyway.
+
 ## Things to know (limits of version 1)
 - **Messages only travel when at least two people have the chat open at the same time.** If you post while nobody else is on, your message waits on your device and goes out the next time someone else opens the chat while you have it open too. A family member who leaves a computer or tablet open with the chat makes this work much better.
-- **No notifications yet** when the page is closed. If a browser tab is open, the tab title shows the number of unread messages.
+- **Notifications only arrive while the chat is open** somewhere in the background (see Notifications above). The tab title also shows the number of unread messages.
 - **Some mobile networks block direct connections.** Usually it works. If one person can never connect from their phone's data plan but can on Wi-Fi, that's the reason. We can fix it later by adding a "TURN" relay, at the cost of a small outside service.
 - **The family code is the key.** Anyone who has it can read and post. Choose a long one (the "Make a new code" button does this) and share it only with family.
 - **Clearing browser data deletes your copy** of the chat. Other people's copies are fine, and you'll get the history back the next time you're both online. "Save a backup" in the menu downloads a copy.
