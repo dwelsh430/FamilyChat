@@ -18,6 +18,14 @@ Edits work offline too and spread to everyone the same way chat messages do. If 
 
 Family members still on an older copy of the page keep seeing the Grocery Store, but they won't see the new boards until they reload.
 
+## Who wrote what (signatures)
+- Each device makes its own private key the first time it opens the app. The key never leaves the device. Every chat message is signed with it, and everyone's app checks the signature.
+- A message that can't be proven shows **· unverified** next to the name. That happens if it came from an older copy of the app, or if someone tried to post as another person. A message with a broken signature is thrown away.
+- If two different people use the same name, each one gets a short code after the name (like "Darcy · 7242") so you can tell them apart.
+- **Using more than one device:** on a device you already use, open the menu (☰) and tap **Link another device**. Scan the QR code with your other phone's camera, or open the link on your other computer, then tap **Link this device**. Your messages from every linked device then show as you. Only do this with your own devices: anyone who uses that link within 10 minutes can post as you.
+- **Lost a device?** On another of your devices, open the menu and tap **Remove** next to it under "My devices". Messages it sends after that no longer count as you. Because the lost device still knows the family code, consider switching everyone to a new family code too.
+- Grocery and board edits aren't signed yet. Anyone in the family can edit those anyway.
+
 ## Things to know (limits of version 1)
 - **Messages only travel when at least two people have the chat open at the same time.** If you post while nobody else is on, your message waits on your device and goes out the next time someone else opens the chat while you have it open too. A family member who leaves a computer or tablet open with the chat makes this work much better.
 - **No notifications yet** when the page is closed. If a browser tab is open, the tab title shows the number of unread messages.
@@ -39,4 +47,4 @@ Our family link: **https://dwelsh430.github.io/FamilyChat/** (served by GitHub P
 - For a quick test on one computer you can also just double-click `index.html`.
 
 ## For later changes
-The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `boards.js` is the boards (Grocery Store and family-made boards). `src/relay.js` is a local test relay, and `src/test.js`, `src/test-grocery.js` and `src/test-boards.js` are automated multi-person tests.
+The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) and a QR code library (qrcode-generator 2.0.4, MIT license) bundled in. `boards.js` is the boards (Grocery Store and family-made boards). `identity.js` handles device keys, signatures and linking. `src/relay.js` is a local test relay, and `src/test.js`, `src/test-grocery.js`, `src/test-boards.js` and `src/test-identity.js` are automated multi-person tests.
