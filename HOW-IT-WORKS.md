@@ -8,6 +8,14 @@ One web page (`index.html`). Open it in any browser on a phone, tablet or comput
 - **Talking.** Once the browsers have found each other, they connect directly (WebRTC, the same technology video calls use) and send messages straight to each other, encrypted.
 - **Keeping a copy.** Every device saves the whole chat. When two devices meet, they compare notes and fill in anything the other is missing. So if Grandma posts while you're offline, and Uncle Pat was online at the time, you get her message from Pat later even if Grandma has gone offline by then.
 
+## The Grocery Store board
+Tap the **Grocery Store** tab at the top. Anyone in the family can:
+- Add a store (like Costco), then add items under it.
+- Tap a store or item name to rename it, tick the box when you've got it, or tap × to delete it.
+- Tap **Clear checked items** after a shopping trip.
+
+Edits work offline too and spread to everyone the same way chat messages do. If two people change the same thing at about the same time, the later change wins. A dot on the tab means someone else changed the list.
+
 ## Things to know (limits of version 1)
 - **Messages only travel when at least two people have the chat open at the same time.** If you post while nobody else is on, your message waits on your device and goes out the next time someone else opens the chat while you have it open too. A family member who leaves a computer or tablet open with the chat makes this work much better.
 - **No notifications yet** when the page is closed. If a browser tab is open, the tab title shows the number of unread messages.
@@ -23,10 +31,10 @@ One web page (`index.html`). Open it in any browser on a phone, tablet or comput
 4. On a phone, use the browser's "Add to Home Screen" so it opens like an app.
 
 ## Where the page lives
-Our family link: **https://dwelsh430.github.io/FamilyChat/chat/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
+Our family link: **https://dwelsh430.github.io/FamilyChat/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
 - **GitHub Pages** (free, needs a GitHub account): put `index.html` in a repository and turn on Pages.
 - Any other free static host (Netlify, Cloudflare Pages) works the same way.
 - For a quick test on one computer you can also just double-click `index.html`.
 
 ## For later changes
-The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `chat/index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `src/relay.js` and `src/test.js` are a local test relay and an automated multi-person test.
+The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `grocery.js` is the Grocery Store board. `src/relay.js` is a local test relay, and `src/test.js` and `src/test-grocery.js` are automated multi-person tests.
