@@ -1,5 +1,5 @@
 const {chromium} = require('playwright');
-const URL='http://localhost:8765/join/?relay=ws://localhost:7447#code=test-otter-maple-4821';
+const URL='http://localhost:8765/chat/?relay=ws://localhost:7447#code=test-otter-maple-4821';
 (async () => {
   const browser = await chromium.launch({args: ['--disable-features=WebRtcHideLocalIpsWithMdns']});
   const mk = async (name, vp) => {

@@ -23,10 +23,10 @@ One web page (`index.html`). Open it in any browser on a phone, tablet or comput
 4. On a phone, use the browser's "Add to Home Screen" so it opens like an app.
 
 ## Where the page lives
-Our family link: **https://dwelsh430.github.io/FamilyChat/join/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
+Our family link: **https://dwelsh430.github.io/FamilyChat/chat/** (served by GitHub Pages from this repository). The page contains only the app, never any messages, so a public address does not expose the chat.
 - **GitHub Pages** (free, needs a GitHub account): put `index.html` in a repository and turn on Pages.
 - Any other free static host (Netlify, Cloudflare Pages) works the same way.
 - For a quick test on one computer you can also just double-click `index.html`.
 
 ## For later changes
-The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `join/index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `src/relay.js` and `src/test.js` are a local test relay and an automated multi-person test.
+The source is in `src/`. `app.js` is the app code and `template.html` is the page layout. `cd src && npm install && npm run build` rebuilds `chat/index.html` with the networking library (Trystero 0.25.4, MIT license) bundled in. `src/relay.js` and `src/test.js` are a local test relay and an automated multi-person test.
