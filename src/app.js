@@ -10,7 +10,7 @@
 //    even if the original sender is offline.
 // ---------------------------------------------------------------------------
 import {joinRoom} from 'trystero'
-import {createGrocery} from './grocery.js'
+import {createBoards, GROCERY} from './boards.js'
 
 const APP_ID = 'familychat-p2p-v1'
 const $ = id => document.getElementById(id)
@@ -135,20 +135,29 @@ function toast(text) {
 let myDeviceId = store.get('fc:device', '')
 if (!myDeviceId) { myDeviceId = crypto.randomUUID().slice(0, 8); store.set('fc:device', myDeviceId) }
 
-// The Grocery Store board shares small "changes" the same way chat shares messages.
-const grocery = createGrocery({
-  root: $('groceryBoard'),
-  storageKey: () => 'fc:grocery:' + familyCode,
+// Boards (Grocery Store + family-made boards) share small "changes" the same way chat shares messages.
+let currentTab = 'chat'
+const boards = createBoards({
+  root: $('boardView'),
+  tabs: $('boardTabs'),
+  storageKey: () => 'fc:grocery:' + familyCode,   // name kept from v1 so existing lists stay
   getName: () => myName,
   deviceId: myDeviceId,
   store,
-  onLocalOps: list => actions?.sendOps(list)
+  getTab: () => currentTab,
+  setTab: name => showTab(name),
+  onLocalOps: list => {
+    const g = list.filter(o => !o.bid), other = list.filter(o => o.bid)
+    if (g.length) actions?.sendOps(g)
+    if (other.length) actions?.sendBoardOps(other)
+  }
 })
 
 async function connect() {
   if (room) { room.leave(); room = null }
   peerNames.clear()
-  loadMessages(); render(); grocery.load()
+  loadMessages(); render(); boards.load()
+  showTab(savedTab())
   // Room name is derived from the code, so the code itself is never published.
   const roomId = (await sha256('room:' + familyCode)).slice(0, 32)
   // For testing only: ?relay=ws://host lets us point at a private relay.
@@ -162,11 +171,15 @@ async function connect() {
   const wantA = room.makeAction('want')     // [ids I'm missing]
   const opsA = room.makeAction('gops')      // [grocery changes]
   const sendOps = (data, target) => opsA.send(data, target ? {target} : undefined)
+  const bopsA = room.makeAction('bops')     // [changes to family-made boards]
+  const sendBoardOps = (data, target) => bopsA.send(data, target ? {target} : undefined)
   const sendHello = (data, target) => helloA.send(data, target ? {target} : undefined)
   const sendMsgs = (data, target) => msgsA.send(data, target ? {target} : undefined)
-  actions = {sendHello, sendMsgs, sendOps}
+  actions = {sendHello, sendMsgs, sendOps, sendBoardOps}
 
-  const hello = target => sendHello({name: myName, ids: [...messages.keys()], gids: grocery.ids()}, target)
+  const helloData = () => ({name: myName, ids: [...messages.keys()], gids: boards.groceryIds(), bids: boards.boardIds()})
+  actions.helloData = helloData
+  const hello = target => sendHello(helloData(), target)
 
   room.onPeerJoin = peerId => { hello(peerId); renderStatus() }
   room.onPeerLeave = peerId => { peerNames.delete(peerId); renderStatus() }
@@ -183,8 +196,13 @@ async function connect() {
     if (want.length) wantA.send(want, {target: peerId})
     // Grocery changes: send the ones they don't have yet (they do the same for us).
     if (Array.isArray(data.gids)) {
-      const lacking = grocery.missingFor(new Set(data.gids))
+      const lacking = boards.missingFor(new Set(data.gids), true)
       if (lacking.length) sendOps(lacking, peerId)
+    }
+    // Family-made boards (only peers running this version send bids).
+    if (Array.isArray(data.bids)) {
+      const lacking = boards.missingFor(new Set(data.bids), false)
+      if (lacking.length) sendBoardOps(lacking, peerId)
     }
   }
   wantA.onMessage = (ids, {peerId}) => {
@@ -199,26 +217,27 @@ async function connect() {
   }
   opsA.onMessage = list => {
     if (!Array.isArray(list)) return
-    const added = grocery.merge(list)
-    if (added && currentTab !== 'grocery') $('tabGrocery').classList.add('has-new')
+    boards.merge(list)
   }
+  bopsA.onMessage = list => { if (Array.isArray(list)) boards.merge(list) }
   renderStatus()
 }
 
 // ---------- tabs ----------
-let currentTab = 'chat'
 function showTab(name) {
+  if (name !== 'chat' && !boards.exists(name)) name = 'chat'
   currentTab = name
   store.set('fc:tab', name)
-  $('tabChat').setAttribute('aria-selected', name === 'chat')
-  $('tabGrocery').setAttribute('aria-selected', name === 'grocery')
-  document.body.dataset.tab = name
-  if (name === 'grocery') $('tabGrocery').classList.remove('has-new')
+  $('tabChat').setAttribute('aria-selected', String(name === 'chat'))
+  document.body.dataset.tab = name === 'chat' ? 'chat' : 'board'
+  boards.render()
   if (name === 'chat') $('messages').scrollTop = $('messages').scrollHeight
 }
 $('tabChat').onclick = () => showTab('chat')
-$('tabGrocery').onclick = () => showTab('grocery')
-showTab(store.get('fc:tab', 'chat') === 'grocery' ? 'grocery' : 'chat')
+function savedTab() {
+  const t = store.get('fc:tab', 'chat')
+  return t === 'grocery' ? 'board:' + GROCERY : t   // 'grocery' was the old name
+}
 
 function sendMessage() {
   const text = $('input').value.trim()
@@ -305,11 +324,11 @@ $('renameBtn').onclick = () => {
   const n = (prompt('Your name:', myName) || '').trim()
   if (!n) return
   myName = n.slice(0, 40); store.set('fc:name', myName)
-  actions?.sendHello({name: myName, ids: [...messages.keys()], gids: grocery.ids()})
+  if (actions) actions.sendHello(actions.helloData())
   renderStatus(); $('menuInfo').textContent = `You are "${myName}". Family code: ${familyCode}`
 }
 $('exportBtn').onclick = () => {
-  const backup = {messages: [...messages.values()], grocery: grocery.get(grocery.ids())}
+  const backup = {messages: [...messages.values()], boards: boards.all()}
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'})
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
